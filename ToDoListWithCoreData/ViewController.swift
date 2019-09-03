@@ -12,15 +12,15 @@ import CoreData
 
 class ViewController: UITableViewController {
     
-    // MARK: - Private Properties
+    // MARK: - Properties
     private let tableColor = #colorLiteral(red: 0.09376922995, green: 0.1349649727, blue: 0.1769709289, alpha: 1)
     private let navigationBarColor = #colorLiteral(red: 0.1299668252, green: 0.1871848702, blue: 0.2499502599, alpha: 1)
     
-    private var tasks: [Task] = []
-    private let cellID = "cell"
+    var tasks: [Task] = []
+    let cellID = "cell"
     
     // Managed Object Context
-    private let managedContext = (UIApplication.shared.delegate as!
+    let managedContext = (UIApplication.shared.delegate as!
         AppDelegate).persistentContainer.viewContext
 
     // MARK: - Lifecycle
@@ -38,7 +38,7 @@ class ViewController: UITableViewController {
         fetchData()
     }
 
-    // MARK: - Private Methods
+    // MARK: - Methods
     private func setupView() {
         setupNavigationBar()
         tableView.backgroundColor = tableColor
@@ -61,20 +61,20 @@ class ViewController: UITableViewController {
             barButtonSystemItem: .add,
             target: self,
             action: #selector(addNewTask))
-        navigationItem.rightBarButtonItem?.tintColor = .white
         
         navigationItem.leftBarButtonItem = editButtonItem
-        navigationItem.leftBarButtonItem?.tintColor = .white
+        navigationItem.leftBarButtonItem?.title = "—"
+        navigationItem.leftBarButtonItem?.tintColor = .red
     }
     
     @objc private func addNewTask() {
-        showAlert()
+        showAddAlert()
     }
     
-    private func showAlert() {
+    private func showAddAlert() {
         let alert = UIAlertController(
             title: "New Task",
-            message: "What do you want do do?",
+            message: "What do you want to do?",
             preferredStyle: .alert)
         
         let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
@@ -95,108 +95,33 @@ class ViewController: UITableViewController {
         present(alert, animated: true)
     }
     
-    // MARK: - Work with Core Data
-    private func save(_ taskName: String) {
-      
-        // Entity Description
-        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: managedContext) else { return }
+    func showEditAlert(at row: Int) {
+        let alert = UIAlertController(
+            title: "Edit task",
+            message: "Do you want to change this?",
+            preferredStyle: .alert)
         
-        // Entity (Task model instance from Core Data)
-        let task = NSManagedObject(entity: entityDescription, insertInto: managedContext) as! Task
-        task.name = taskName
-        
-        // Saving
-        do {
-            try managedContext.save()
-            tasks.append(task)
-            self.tableView.insertRows(
-                at: [IndexPath(row: self.tasks.count - 1, section: 0)],
-                with: .automatic)
-        } catch let error {
-            print(error.localizedDescription)
-        }
-    }
-    
-    private func fetchData() {
-        
-        // Запрос выборки из базы по ключу Task
-        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
-        
-        // Присваем результат выборки переменой Tasks
-        do {
-            tasks = try managedContext.fetch(fetchRequest)
-        } catch let error {
-            print(error.localizedDescription)
-        }
-    }
-    
-    private func delete(at index: Int) {
-        // Запрос выборки из базы по ключу Task
-        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
-        
-        do {
-            // Присваеваем результат выборки константе
-            let tasks = try managedContext.fetch(fetchRequest)
-            // Выбираем элемент по указанному индексу для удаления
-            let taskToDelete = tasks[index] as NSManagedObject
-            // Удаляем элемент из базы
-            managedContext.delete(taskToDelete)
-            // Удаляем элемент из массива
-            self.tasks.remove(at: index)
-            // Удаляем элемент из таблицы
-            tableView.deleteRows(at: [IndexPath(row: index, section: 0)],
-                                 with: .automatic)
+        let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
+            guard let task = alert.textFields?.first?.text,
+                !task.isEmpty else { return }
             
-            // Пытаемся сохранить изменения
-            do {
-                try managedContext.save()
-            } catch let error {
-                print(error.localizedDescription)
-            }
-            
-        } catch let error {
-            print(error.localizedDescription)
+            self.update(at: row, newTaskName: task)
         }
         
-    }
-  
-}
-
-
-// MARK: -  UITableViewDataSource
-extension ViewController {
-    override func tableView(_ tableView: UITableView,
-                            numberOfRowsInSection section: Int) -> Int {
-        return tasks.count
+        let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
+        
+        alert.addTextField()
+        alert.textFields?.first?.keyboardAppearance = .dark
+        alert.textFields?.first?.text = tasks[row].name
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
     }
     
-    override func tableView(_ tableView: UITableView,
-                            cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
-        
-        cell.textLabel?.text = tasks[indexPath.row].name
-        cell.customize()
-        
-        return cell
-    }
-    
-    override func tableView(_ tableView: UITableView,
-                            commit editingStyle: UITableViewCell.EditingStyle,
-                            forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            delete(at: indexPath.row)
-        }
-    }
-
 }
 
-// MARK: -  UITableViewCell
-extension UITableViewCell {
-    func customize() {
-        self.textLabel?.font = UIFont(name: "HoeflerText-Regular", size: 21)
-        self.textLabel?.textColor = .white
-        self.backgroundColor = .clear
-        self.selectionStyle = .none
-    }
-}
+
+
+
 
