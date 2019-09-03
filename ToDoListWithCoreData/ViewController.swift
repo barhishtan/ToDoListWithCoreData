@@ -62,6 +62,9 @@ class ViewController: UITableViewController {
             target: self,
             action: #selector(addNewTask))
         navigationItem.rightBarButtonItem?.tintColor = .white
+        
+        navigationItem.leftBarButtonItem = editButtonItem
+        navigationItem.leftBarButtonItem?.tintColor = .white
     }
     
     @objc private func addNewTask() {
@@ -127,6 +130,32 @@ class ViewController: UITableViewController {
             print(error.localizedDescription)
         }
     }
+    
+    private func deleteTask(at index: Int) {
+        // Запрос выборки из базы по ключу Task
+        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
+        
+        do {
+            // Присваеваем результат выборки константе
+            let tasks = try managedContext.fetch(fetchRequest)
+            // Выбираем элемент по указанному индексу для удаления
+            let taskToDelete = tasks[index] as NSManagedObject
+            // Удаляем элемент из базы
+            managedContext.delete(taskToDelete)
+            
+            // Пытаемся сохранить изменения
+            do {
+                try managedContext.save()
+            } catch let error {
+                print(error.localizedDescription)
+            }
+            
+        } catch let error {
+            print(error.localizedDescription)
+        }
+        
+    }
+    
 }
 
 
@@ -145,6 +174,24 @@ extension ViewController {
         cell.customize()
         
         return cell
+    }
+    
+    override func tableView(_ tableView: UITableView,
+                            commit editingStyle: UITableViewCell.EditingStyle,
+                            forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            tasks.remove(at: indexPath.row)
+            deleteTask(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .automatic)
+        }
+    }
+    
+    override func tableView(_ tableView: UITableView,
+                            moveRowAt fromIndexPath: IndexPath,
+                            to: IndexPath) {
+        let task = tasks.remove(at: fromIndexPath.row)
+        tasks.insert(task, at: to.row)
+        tableView.reloadData()
     }
     
 }
