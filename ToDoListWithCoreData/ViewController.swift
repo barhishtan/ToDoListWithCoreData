@@ -103,7 +103,6 @@ class ViewController: UITableViewController {
         
         // Entity (Task model instance from Core Data)
         let task = NSManagedObject(entity: entityDescription, insertInto: managedContext) as! Task
-        
         task.name = taskName
         
         // Saving
@@ -131,7 +130,7 @@ class ViewController: UITableViewController {
         }
     }
     
-    private func deleteTask(at index: Int) {
+    private func delete(at index: Int) {
         // Запрос выборки из базы по ключу Task
         let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
         
@@ -142,6 +141,11 @@ class ViewController: UITableViewController {
             let taskToDelete = tasks[index] as NSManagedObject
             // Удаляем элемент из базы
             managedContext.delete(taskToDelete)
+            // Удаляем элемент из массива
+            self.tasks.remove(at: index)
+            // Удаляем элемент из таблицы
+            tableView.deleteRows(at: [IndexPath(row: index, section: 0)],
+                                 with: .automatic)
             
             // Пытаемся сохранить изменения
             do {
@@ -155,7 +159,7 @@ class ViewController: UITableViewController {
         }
         
     }
-    
+  
 }
 
 
@@ -180,20 +184,10 @@ extension ViewController {
                             commit editingStyle: UITableViewCell.EditingStyle,
                             forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            tasks.remove(at: indexPath.row)
-            deleteTask(at: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: .automatic)
+            delete(at: indexPath.row)
         }
     }
-    
-    override func tableView(_ tableView: UITableView,
-                            moveRowAt fromIndexPath: IndexPath,
-                            to: IndexPath) {
-        let task = tasks.remove(at: fromIndexPath.row)
-        tasks.insert(task, at: to.row)
-        tableView.reloadData()
-    }
-    
+
 }
 
 // MARK: -  UITableViewCell
